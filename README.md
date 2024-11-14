@@ -47,7 +47,7 @@
 
 ### 구현 내용
 
-#### 1. `TodoRepository`에 JPQL 쿼리 작성
+#### `TodoRepository`에 JPQL 쿼리 작성
 `weather`와 `modifiedAt` 필드의 조건을 처리하기 위해 다양한 JPQL 쿼리를 작성했습니다.
 
 - `weather` 조건만 있을 때
@@ -60,3 +60,26 @@
 localhost:8080/todos?page=1&size=10&weather=Blustery Winds&start=2024-11-14T00:00:00&end=2024-11-14T23:59:59
 ```
 ---
+
+## Level 2.6 : JPA Cascade
+
+### 요구사항
+- 할 일을 새로 저장할 때, 할 일을 생성한 유저가 자동으로 담당자로 등록되어야 합니다.
+- JPA의 `cascade` 기능을 사용하여, `Todo` 생성 시 해당 유저가 `Manager`로 자동 등록되도록 구현했습니다.
+
+### 구현 내용
+
+**`CascadeType.PERSIST` 설정**:
+    - `Todo`와 `Manager` 사이의 `@OneToMany` 관계에서 `cascade = CascadeType.PERSIST`를 설정하여, `Todo`가 저장될 때 연관된 `Manager` 엔티티도 자동으로 저장되도록 했습니다.
+
+--- 
+
+## Level 2.7 : N+1
+
+### 문제 원인
+`CommentController` 클래스의 `getComments()` API에서 **N+1 문제**가 발생하여, 각 댓글의 작성자(`User`) 정보를 조회하기 위해 추가적인 쿼리가 반복적으로 실행되고 있었습니다.
+
+### 해결 방법
+`CommentRepository`의 JPQL 쿼리에 **`JOIN FETCH`를 추가**하여, `Comment`와 연관된 `User` 데이터를 한 번의 쿼리로 가져오도록 수정했습니다.
+
+
