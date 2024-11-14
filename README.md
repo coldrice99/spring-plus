@@ -82,4 +82,19 @@ localhost:8080/todos?page=1&size=10&weather=Blustery Winds&start=2024-11-14T00:0
 ### 해결 방법
 `CommentRepository`의 JPQL 쿼리에 **`JOIN FETCH`를 추가**하여, `Comment`와 연관된 `User` 데이터를 한 번의 쿼리로 가져오도록 수정했습니다.
 
+---
+
+## Level 2.8: QueryDSL을 활용한 JPQL 대체
+
+### 요구사항
+- 기존 JPQL 쿼리를 QueryDSL로 변경하여 `findByIdWithUser` 메서드를 구현합니다.
+- N+1 문제가 발생하지 않도록 `fetchJoin`을 사용해 데이터를 한 번에 조회합니다.
+
+### 구현 내용
+1. **JPAQueryFactory 빈 설정**: QueryDSL을 사용하기 위해 `JPAConfiguration` 클래스에 `JPAQueryFactory`를 빈으로 등록했습니다. 이를 통해 QueryDSL을 사용하여 동적 쿼리를 작성할 수 있게 설정했습니다.
+
+2. **QueryDSL로 단건 조회 쿼리 구현**: 
+   - `QTodo`와 `QUser`로 생성된 QueryDSL Q 클래스를 사용하여 `Todo`와 `User` 엔티티에 접근했습니다.
+   - **단건 조회**를 위해 `fetchOne()`을 사용하여 `todoId`에 해당하는 단일 `Todo`를 조회하고, N+1 문제가 발생하지 않도록 **fetchJoin**을 통해 연관된 `User` 데이터를 한 번에 가져왔습니다.
+
 
