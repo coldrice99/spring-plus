@@ -222,3 +222,37 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
 
 ### 7. **트러블 슈팅** 헤더와 쿠키 방식의 jwt 검증의 차이
 https://velog.io/@happy_code/%ED%97%A4%EB%8D%94%EC%99%80-%EC%BF%A0%ED%82%A4%EC%9D%98-JWT-%EA%B2%80%EC%A6%9D-%EB%B0%A9%EC%8B%9D-%EC%B0%A8%EC%9D%B4
+
+아래는 주어진 템플릿에 맞춘 README 내용입니다:
+
+---
+
+### **Level 3.10 QueryDSL을 사용하여 검색 기능 만들기**
+
+#### **요구사항**
+- 일정 데이터를 검색하는 API를 구현한다.
+- QueryDSL을 사용하여 검색 조건에 따라 데이터를 조회한다.
+- 페이징 처리와 Projections를 활용하여 필요한 데이터만 반환한다.
+- 검색 조건:
+    1. 제목 키워드: 제목에 특정 키워드가 포함된 일정 검색 (부분 일치).
+    2. 생성일 범위: 특정 날짜 범위 안에 생성된 일정 검색.
+    3. 담당자 닉네임: 담당자 닉네임이 특정 키워드를 포함하는 일정 검색 (부분 일치).
+- 검색 결과:
+    - 검색된 일정 제목만 반환.
+    - 일정에 할당된 담당자 수.
+    - 해당 일정에 작성된 댓글 수.
+
+#### **구현 내용**
+1. **클래스 작성**
+    - **`TodoSearchRequest.java`**: 검색 조건을 담는 DTO 클래스.
+    - **`TodoSearchResponse.java`**: 검색 결과를 담는 DTO 클래스.
+
+2. **API 구현**
+    - **`TodoController.java`**: `/api/todos/search` 경로로 검색 요청을 처리하는 API 구현 (`searchTodo` 메서드).
+
+3. **서비스 구현**
+    - **`TodoService.java`**: 검색 조건을 받아 Repository로 전달하고 결과를 반환하는 `searchTodo` 서비스 메서드 구현.
+
+4. **Repository 구현**
+    - **`TodoRepositoryCustom.java`**: 커스텀 Repository 인터페이스 작성.
+    - **`TodoRepositoryCustomImpl.java`**: QueryDSL을 사용하여 `findByKeywordAndCreatedAtBetweenAndNickname` 메서드 구현. 해당 메서드는 검색 조건에 따라 데이터를 조회하고 페이징 처리된 결과를 반환한다.
