@@ -256,3 +256,34 @@ https://velog.io/@happy_code/%ED%97%A4%EB%8D%94%EC%99%80-%EC%BF%A0%ED%82%A4%EC%9
 4. **Repository 구현**
     - **`TodoRepositoryCustom.java`**: 커스텀 Repository 인터페이스 작성.
     - **`TodoRepositoryCustomImpl.java`**: QueryDSL을 사용하여 `findByKeywordAndCreatedAtBetweenAndNickname` 메서드 구현. 해당 메서드는 검색 조건에 따라 데이터를 조회하고 페이징 처리된 결과를 반환한다.
+
+### **level 3.11 Transaction 심화**
+
+#### **요구사항**
+- 매니저 등록 요청 시 로그를 기록하는 기능을 구현한다.
+- `@Transactional`의 옵션을 사용하여 매니저 등록과 로그 기록이 각각 **독립적인 트랜잭션**으로 처리되도록 한다.
+    - 매니저 등록이 실패해도 로그는 반드시 저장되어야 한다.
+- 로그 테이블(`log`)을 생성하고 아래 조건에 따라 데이터를 저장한다.
+    1. 로그 생성 시간은 자동으로 기록된다.
+    2. 매니저 등록 요청 내용(`logDetails`)과 상태(`status`: 성공/실패)를 저장한다.
+
+#### **구현 내용**
+1. **클래스 작성**
+    - **`Log.java`**: 로그 데이터를 저장하는 엔티티.
+        - **JPA Auditing을 사용하여 생성 시간을 Timestamped 상속을 통해 자동 관리
+        - 필드: `logDetails`, `status`.
+    - **`LogRepository.java`**: 로그 데이터를 저장하기 위한 JPA Repository.
+
+2. **로그 저장 서비스**
+    - **`LogService.java`**:
+        - 독립적인 트랜잭션에서 로그를 저장하기 위해 `@Transactional(propagation = Propagation.REQUIRES_NEW)`를 사용.
+
+3. **매니저 등록 서비스**
+    - **`ManagerService.java`**:
+        - 매니저 등록 요청을 처리하는 `saveManager` 메서드에서 로그 저장 로직 추가.
+        - 성공 시 "SUCCESS" 상태로 로그를 저장.
+        - 실패 시 "FAILURE" 상태로 로그를 저장.
+
+4. **트랜잭션 처리**
+    - 매니저 등록 트랜잭션과 로그 저장 트랜잭션을 분리하여 독립적으로 처리.
+    - 매니저 등록이 실패하더라도 로그는 항상 저장되도록 구현.
