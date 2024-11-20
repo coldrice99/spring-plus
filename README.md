@@ -96,5 +96,129 @@ localhost:8080/todos?page=1&size=10&weather=Blustery Winds&start=2024-11-14T00:0
 2. **QueryDSL로 단건 조회 쿼리 구현**: 
    - `QTodo`와 `QUser`로 생성된 QueryDSL Q 클래스를 사용하여 `Todo`와 `User` 엔티티에 접근했습니다.
    - **단건 조회**를 위해 `fetchOne()`을 사용하여 `todoId`에 해당하는 단일 `Todo`를 조회하고, N+1 문제가 발생하지 않도록 **fetchJoin**을 통해 연관된 `User` 데이터를 한 번에 가져왔습니다.
+---
+
+## Level 2.9: Spring Security와 JWT 통합
+
+### 요구사항
+- Spring Security를 도입하여 기존의 `Filter`와 `Argument Resolver`로 구현된 인증 및 인가 로직을 대체
+- JWT를 사용한 토큰 기반 인증 방식 유지
+- 권한 및 접근 제어는 Spring Security의 기능 활용
 
 
+## 구현 내용
+
+### 1. **JWT를 쿠키 기반으로 관리**
+- 헤더에서 JWT를 관리하던 기존 방식의 불편함(테스트 시 매번 헤더에 토큰 추가)을 해결하기 위해, 쿠키를 통해 JWT를 관리하도록 변경.
+- JWT 생성 및 검증 로직은 `JwtUtil`에서 관리.
+
+#### 주요 수정 사항:
+1. **JWT 생성 및 쿠키 저장**
+   ```java
+   public void addJwtToCookie(String token, HttpServletResponse res) {
+       try {
+           token = URLEncoder.encode(token, "utf-8").replaceAll("\\+", "%20");
+           Cookie cookie = new Cookie("Authorization", token);
+           cookie.setPath("/");
+           res.addCookie(cookie);
+       } catch (UnsupportedEncodingException e) {
+           log.error(e.getMessage());
+       }
+   }
+   ```
+
+2. **JWT 검증 및 쿠키에서 가져오기**
+   ```java
+   public String getTokenFromRequest(HttpServletRequest req) {
+       Cookie[] cookies = req.getCookies();
+       if (cookies != null) {
+           for (Cookie cookie : cookies) {
+               if (cookie.getName().equals("Authorization")) {
+                   return cookie.getValue();
+               }
+           }
+       }
+       return null;
+   }
+   ```
+
+### 2. **JWT 인증 및 인가 필터 구현**
+
+### `JwtAuthenticationFilter`
+- **로그인 요청을 처리**하며, 사용자 인증 및 JWT 생성을 담당합니다.
+- Spring Security의 `UsernamePasswordAuthenticationFilter`를 상속받아 구현.
+
+#### `JwtAuthorizationFilter`
+- `OncePerRequestFilter`를 상속받아 모든 요청마다 JWT를 검증.
+- 쿠키에서 JWT를 추출하고 유효성을 검증한 뒤, Spring Security의 `SecurityContext`에 인증 정보를 저장.
+
+```java
+@Override
+protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain)
+        throws ServletException, IOException {
+    String tokenValue = jwtUtil.getTokenFromRequest(req);
+
+    if (!StringUtils.isEmpty(tokenValue)) {
+        tokenValue = tokenValue.substring(7); // "Bearer " 제거
+    }
+
+    if (StringUtils.hasText(tokenValue) && jwtUtil.validateToken(tokenValue)) {
+        Claims info = jwtUtil.extractClaims(tokenValue);
+        setAuthentication(info.getSubject());
+    }
+
+    filterChain.doFilter(req, res);
+}
+```
+
+### 3. **Spring Security 설정**
+
+#### `WebSecurityConfig`
+- Spring Security를 활용한 경로별 접근 제어 및 JWT 필터 등록.
+- `SecurityFilterChain`을 사용해 Spring Security의 HTTP 설정을 구성.
+
+```java
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http.csrf(csrf -> csrf.disable())
+        .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(authorizeRequests -> authorizeRequests
+            .requestMatchers("/auth/**").permitAll() // 로그인 및 회원가입 경로 허용
+            .anyRequest().authenticated())          // 그 외 경로는 인증 필요
+        .addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+    return http.build();
+}
+```
+
+---
+
+### 4. **테스트 및 검증**
+
+- **JWT 생성 및 저장 확인**
+    1. 로그인 후, 응답 쿠키에 JWT가 저장됨을 확인.
+    2. 이후 모든 요청에 자동으로 쿠키에 저장된 JWT가 전송되어 인증 필터를 통과.
+
+- **Postman 테스트**
+    1. 로그인:
+        ```json
+        {
+            "email": "test@example.com",
+            "password": "1234"
+        }
+        ```
+    
+    2. 일정 생성:
+        - JWT가 쿠키에 저장된 상태에서 일정 생성 API 호출 시, 인증이 성공적으로 이루어짐.
+
+### 5. **장점**
+- **테스트 편의성**: JWT를 쿠키로 관리하여 헤더에 매번 토큰을 추가할 필요가 없음.
+- **Spring Security 활용**: 기존 인증 로직과 권한 관리 로직을 Spring Security와 연동.
+- **코드 간소화**: 인증 관련 컨트롤러 및 서비스 로직을 Spring Security 필터로 대체.
+
+### 6. **향후 개선점**
+- 쿠키에 `HttpOnly`, `Secure` 옵션 추가로 보안 강화.
+- Refresh Token 도입을 통해 토큰 만료 시 자동 재발급 구현.
+
+### 7. **트러블 슈팅** 헤더와 쿠키 방식의 jwt 검증의 차이
+https://velog.io/@happy_code/%ED%97%A4%EB%8D%94%EC%99%80-%EC%BF%A0%ED%82%A4%EC%9D%98-JWT-%EA%B2%80%EC%A6%9D-%EB%B0%A9%EC%8B%9D-%EC%B0%A8%EC%9D%B4
