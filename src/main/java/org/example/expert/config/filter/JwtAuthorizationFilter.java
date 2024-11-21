@@ -33,6 +33,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         쿠키에 있는 토큰을 검증할 때 bearer을 substring하지 않으면 decode 과정에서 오류가 발생.
         토큰이 만들어지기 전인 null 값일 때 subString이 실행되서 오류가 뜨는 것을 방지
          */
+
         if (!StringUtils.isEmpty(tokenValue)) {
             tokenValue = tokenValue.substring(7);
         }

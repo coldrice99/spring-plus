@@ -69,7 +69,7 @@ public class WebSecurityConfig {
                         authorizeRequests
                                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // resources 접근 허용 설정
                                 .requestMatchers("/auth/**").permitAll() // 로그인, 회원가입 요청 접근 허용
-                                .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 권한 접근 허용
+//                                .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 권한 접근 허용
                                 .anyRequest().authenticated() // 그 외 모든 요청 인증 처리
                 );
 

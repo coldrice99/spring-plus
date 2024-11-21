@@ -29,14 +29,6 @@ public class UserDetailsImpl implements UserDetails {
         return user.getPassword();
     }
 
-//    public String getNickname() {
-//        return user.getNickname();
-//    }
-//
-//    public Long getId() {
-//        return user.getId();
-//    }
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         UserRole userRole = user.getUserRole();
